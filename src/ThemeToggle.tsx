@@ -9,7 +9,7 @@ export function ThemeToggle() {
     return null;
   }
 
-  if (mode === "light") {
+  if (mode === "light" || systemMode === "light") {
     return (
       <IconButton aria-label="dark mode" onClick={() => setMode("dark")}>
         <DarkModeIcon />

@@ -133,23 +133,25 @@ export function App() {
               </Table.Cell>
               {/* Most Recent Purchase */}
               <Table.Cell textAlign="end">
-                <FormatNumber
-                  value={
-                    item.nq.recentPurchase.world?.price ||
-                    item.nq.recentPurchase.dc?.price ||
-                    item.nq.recentPurchase.region?.price ||
-                    0
-                  }
-                />{" "}
-                <Span color={"fg.muted"}>
-                  (
-                  {formatTimestamp(
-                    item.nq.recentPurchase.world?.timestamp ||
-                      item.nq.recentPurchase.dc?.timestamp ||
-                      item.nq.recentPurchase.region?.timestamp,
-                  )}
-                  )
-                </Span>
+                <Flex justify="space-between">
+                  <FormatNumber
+                    value={
+                      item.nq.recentPurchase.world?.price ||
+                      item.nq.recentPurchase.dc?.price ||
+                      item.nq.recentPurchase.region?.price ||
+                      0
+                    }
+                  />
+                  <Span color={"fg.muted"}>
+                    (
+                    {formatTimestamp(
+                      item.nq.recentPurchase.world?.timestamp ||
+                        item.nq.recentPurchase.dc?.timestamp ||
+                        item.nq.recentPurchase.region?.timestamp,
+                    )}
+                    )
+                  </Span>
+                </Flex>
               </Table.Cell>
               {/* Average Sale Price */}
               <Table.Cell textAlign="end">

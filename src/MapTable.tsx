@@ -136,7 +136,7 @@ export default function MapTable({ data }: { data: Data[] }) {
   const [order, setOrder] = useState<Order>("desc");
   const [orderBy, setOrderBy] = useState<keyof Data>("cheapest");
 
-  const handleRequestSort = (event: MouseEvent<unknown>, property: keyof Data) => {
+  const handleRequestSort = (_event: MouseEvent<unknown>, property: keyof Data) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);

@@ -156,12 +156,12 @@ export function App() {
               {/* Average Sale Price */}
               <Table.Cell textAlign="end">
                 <FormatNumber
-                  value={
+                  value={Math.round(
                     item.nq.averageSalePrice.world?.price ||
-                    item.nq.averageSalePrice.dc?.price ||
-                    item.nq.averageSalePrice.region?.price ||
-                    0
-                  }
+                      item.nq.averageSalePrice.dc?.price ||
+                      item.nq.averageSalePrice.region?.price ||
+                      0,
+                  )}
                 />
               </Table.Cell>
               {/* Daily Sale Velocity */}

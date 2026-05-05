@@ -134,7 +134,7 @@ export function App() {
             options={worlds}
             renderInput={(params) => <TextField {...params} label="Server" />}
             value={server}
-            onChange={(event, newValue) => setServer(newValue || "")}
+            onChange={(_event, newValue) => setServer(newValue || "")}
           />
           {isLoading ? <Box>Loading...</Box> : renderTable(data)}
           <Box sx={{ display: "flex", justifyContent: "center" }}>

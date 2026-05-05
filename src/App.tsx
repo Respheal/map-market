@@ -1,62 +1,50 @@
-import { Box, Flex, Input, Table, FormatNumber, Link, Span } from "@chakra-ui/react";
-import { queryOptions, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { queryOptions, useQuery } from "@tanstack/react-query";
+
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Autocomplete from "@mui/material/Autocomplete";
+import GitHubIcon from "@mui/icons-material/GitHub";
+import IconButton from "@mui/material/IconButton";
+
+import { ThemeToggle } from "./ThemeToggle";
+import MapTable from "./MapTable";
+import { worlds } from "./worlds";
+import type { ApiResponse, Data, MapData } from "./interfaces";
 
 const mapsMeta = {
-  6689: "Goatskin",
-  6690: "Toadskin",
-  6691: "Boarskin",
-  43556: "Loboskin",
-  36611: "Saigaskin",
-  6692: "Peisteskin",
-  12242: "Wyvernskin",
-  12243: "Dragonskin",
-  17835: "Gaganaskin",
-  26744: "Gliderskin",
-  26745: "Zonureskin",
-  43557: "Br'aaxskin",
-  12241: "Archaeoskin",
-  17836: "Gazelleskin",
-  36612: "Kumbhiraskin",
-  46185: "Gargantuaskin",
+  6688: { name: "Leather", exp: "ARR" },
+  6689: { name: "Goatskin", exp: "ARR" },
+  6690: { name: "Toadskin", exp: "ARR" },
+  6691: { name: "Boarskin", exp: "ARR" },
+  6692: { name: "Peisteskin", exp: "ARR" },
+
+  12241: { name: "Archaeoskin", exp: "HW" },
+  12242: { name: "Wyvernskin", exp: "HW" },
+  12243: { name: "Dragonskin", exp: "HW" },
+
+  17835: { name: "Gaganaskin", exp: "StB" },
+  17836: { name: "Gazelleskin", exp: "StB" },
+
+  26744: { name: "Gliderskin", exp: "ShB" },
+  26745: { name: "Zonureskin", exp: "ShB" },
+
+  36611: { name: "Saigaskin", exp: "EW" },
+  36612: { name: "Kumbhiraskin", exp: "EW" },
+  39591: { name: "Ophiotauroskin", exp: "EW" },
+
+  43556: { name: "Loboskin", exp: "DT" },
+  43557: { name: "Br'aaxskin", exp: "DT" },
+  46185: { name: "Gargantuaskin", exp: "DT" },
 };
 const mapIds = Object.keys(mapsMeta).map(Number);
 
-interface ApiResponse {
-  results: MapData[];
-}
-
-interface MapData {
-  itemId: number;
-  nq: {
-    minListing: {
-      world?: { price: number };
-      dc?: { price: number; worldId: number };
-      region?: { price: number; worldId: number };
-    };
-    recentPurchase: {
-      world?: { price: number; timestamp: number };
-      dc?: { price: number; timestamp: number; worldId: number };
-      region?: { price: number; timestamp: number; worldId: number };
-    };
-    averageSalePrice: {
-      world?: { price: number };
-      dc?: { price: number };
-      region?: { price: number };
-    };
-    dailySaleVelocity: {
-      world?: { quantity: number };
-      dc?: { quantity: number };
-      region?: { quantity: number };
-    };
-  };
-  worldUploadTimes: { worldId: number; timestamp: number }[];
-}
-
 export function App() {
-  const [server, setServer] = useState<string>(""); // server input state
+  const [server, setServer] = useState<string>("");
   const [debouncedServer, setDebouncedServer] = useState(server); // debouncer for server
-  const { data, error } = useQuery(getMapOptions(debouncedServer));
+  const { data, isLoading, error } = useQuery(getMapOptions(debouncedServer));
 
   // Wait a sec before updating the server and thus pulling from the API
   useEffect(() => {
@@ -66,9 +54,10 @@ export function App() {
     return () => clearTimeout(timer);
   }, [server]);
 
-  async function getMapData(server: string = ""): Promise<ApiResponse> {
+  async function getMapData(server: string): Promise<ApiResponse> {
+    const safeServer = server.replace(/\s/g, "-");
     const response = await fetch(
-      `https://universalis.app/api/v2/aggregated/${server}/${mapIds.join(",")}`,
+      `https://universalis.app/api/v2/aggregated/${safeServer}/${mapIds.join(",")}`,
     );
     return await response.json();
   }
@@ -81,114 +70,56 @@ export function App() {
     });
   }
 
-  function formatTimestamp(timestamp: number | undefined): string {
-    if (!timestamp) return "N/A";
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+  function processData(data: MapData[]): Data[] {
+    return data.map((map) => {
+      const meta = mapsMeta[map.itemId as keyof typeof mapsMeta];
+      return {
+        id: map.itemId,
+        name: meta.name,
+        exp: meta.exp,
+        cheapest:
+          map.nq.minListing.world?.price ||
+          map.nq.minListing.dc?.price ||
+          map.nq.minListing.region?.price ||
+          0,
+        recent:
+          map.nq.recentPurchase.world?.price ||
+          map.nq.recentPurchase.dc?.price ||
+          map.nq.recentPurchase.region?.price ||
+          0,
+        recentTimestamp:
+          map.nq.recentPurchase.world?.timestamp ||
+          map.nq.recentPurchase.dc?.timestamp ||
+          map.nq.recentPurchase.region?.timestamp ||
+          0,
+        average: Math.round(
+          map.nq.averageSalePrice.world?.price ||
+            map.nq.averageSalePrice.dc?.price ||
+            map.nq.averageSalePrice.region?.price ||
+            0,
+        ),
+        velocity:
+          Math.round(
+            (map.nq.dailySaleVelocity.world?.quantity ||
+              map.nq.dailySaleVelocity.dc?.quantity ||
+              map.nq.dailySaleVelocity.region?.quantity ||
+              0) * 100,
+          ) / 100,
+      };
+    });
   }
 
-  function getWikiLink(itemName: string): string {
-    return `https://ffxiv.consolegameswiki.com/wiki/Timeworn_${itemName}_Map#Gathering`;
-  }
-
-  function displayTable(maps: MapData[]) {
-    console.log(maps);
-    if (maps.length === 0) {
+  function renderTable(data: ApiResponse | undefined) {
+    if (!data) {
       return <Box>Enter a server to receive maps.</Box>;
     }
-    return (
-      <Table.Root size="sm" variant="outline">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>Map Name</Table.ColumnHeader>
-            <Table.ColumnHeader>Lowest Listing</Table.ColumnHeader>
-            <Table.ColumnHeader>Most Recent Purchase</Table.ColumnHeader>
-            <Table.ColumnHeader>Average Sale Price</Table.ColumnHeader>
-            <Table.ColumnHeader>Daily Sale Velocity</Table.ColumnHeader>
-            <Table.ColumnHeader>Gathering Location</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {maps.map((item) => (
-            <Table.Row key={item.itemId}>
-              {/* Name */}
-              <Table.Cell>
-                <Link
-                  variant="underline"
-                  href={`https://universalis.app/market/${item.itemId}`}
-                >
-                  {mapsMeta[item.itemId as keyof typeof mapsMeta]}
-                </Link>
-              </Table.Cell>
-              {/* Lowest Listing */}
-              <Table.Cell>
-                <FormatNumber
-                  value={
-                    item.nq.minListing.world?.price ||
-                    item.nq.minListing.dc?.price ||
-                    item.nq.minListing.region?.price ||
-                    0
-                  }
-                />
-              </Table.Cell>
-              {/* Most Recent Purchase */}
-              <Table.Cell textAlign="end">
-                <Flex justify="space-between">
-                  <FormatNumber
-                    value={
-                      item.nq.recentPurchase.world?.price ||
-                      item.nq.recentPurchase.dc?.price ||
-                      item.nq.recentPurchase.region?.price ||
-                      0
-                    }
-                  />
-                  <Span color={"fg.muted"}>
-                    (
-                    {formatTimestamp(
-                      item.nq.recentPurchase.world?.timestamp ||
-                        item.nq.recentPurchase.dc?.timestamp ||
-                        item.nq.recentPurchase.region?.timestamp,
-                    )}
-                    )
-                  </Span>
-                </Flex>
-              </Table.Cell>
-              {/* Average Sale Price */}
-              <Table.Cell textAlign="end">
-                <FormatNumber
-                  value={Math.round(
-                    item.nq.averageSalePrice.world?.price ||
-                      item.nq.averageSalePrice.dc?.price ||
-                      item.nq.averageSalePrice.region?.price ||
-                      0,
-                  )}
-                />
-              </Table.Cell>
-              {/* Daily Sale Velocity */}
-              <Table.Cell textAlign="end">
-                <FormatNumber
-                  value={
-                    item.nq.dailySaleVelocity.world?.quantity ||
-                    item.nq.dailySaleVelocity.dc?.quantity ||
-                    item.nq.dailySaleVelocity.region?.quantity ||
-                    0
-                  }
-                />
-              </Table.Cell>
-              {/* Gathering Location */}
-              <Table.Cell>
-                <Link
-                  variant="underline"
-                  href={getWikiLink(mapsMeta[item.itemId as keyof typeof mapsMeta])}
-                >
-                  Wiki
-                </Link>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
-    );
+    if (data.status === 404) {
+      return <Box>Unknown world/DC/region.</Box>;
+    }
+    if (data.results && data.results.length > 0) {
+      return <MapTable data={processData(data.results ? data.results : [])} />;
+    }
+    return <Box>No data available for the selected server.</Box>;
   }
 
   if (error) {
@@ -196,15 +127,27 @@ export function App() {
   }
 
   return (
-    <Flex justifyContent={"center"}>
-      <Box>
-        <Input
-          placeholder="Server"
-          value={server}
-          onChange={(e) => setServer(e.target.value)}
-        />
-        {displayTable(data?.results || [])}
+    <Container>
+      <Box sx={{ p: { sm: 3 }, py: { xs: 3, sm: 5 } }}>
+        <Stack spacing={2}>
+          <Autocomplete
+            options={worlds}
+            renderInput={(params) => <TextField {...params} label="Server" />}
+            value={server}
+            onChange={(event, newValue) => setServer(newValue || "")}
+          />
+          {isLoading ? <Box>Loading...</Box> : renderTable(data)}
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <ThemeToggle />
+            <IconButton
+              aria-label="View the repo on GitHub"
+              href="https://github.com/Respheal/map-market"
+            >
+              <GitHubIcon />
+            </IconButton>
+          </Box>
+        </Stack>
       </Box>
-    </Flex>
+    </Container>
   );
 }

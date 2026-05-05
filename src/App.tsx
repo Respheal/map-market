@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 
 import Box from "@mui/material/Box";
@@ -43,16 +43,7 @@ const mapIds = Object.keys(mapsMeta).map(Number);
 
 export function App() {
   const [server, setServer] = useState<string>("");
-  const [debouncedServer, setDebouncedServer] = useState(server); // debouncer for server
-  const { data, isLoading, error } = useQuery(getMapOptions(debouncedServer));
-
-  // Wait a sec before updating the server and thus pulling from the API
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedServer(server);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [server]);
+  const { data, isLoading, error } = useQuery(getMapOptions(server));
 
   async function getMapData(server: string): Promise<ApiResponse> {
     const safeServer = server.replace(/\s/g, "-");
